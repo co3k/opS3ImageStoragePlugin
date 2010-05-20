@@ -1,0 +1,15 @@
+options:
+  charset: utf8
+
+S3ImageQueue:
+  options:
+    symfony:
+      form: false
+      filter: false
+  columns:
+    id: { type: integer(4), primary: true, autoincrement: true }
+    name: { type: string(64), default: "", notnull: true, comment: "File name" }
+  indexes:
+    file_name:
+      fields: [name]
+      type: unique

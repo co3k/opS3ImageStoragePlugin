@@ -8,7 +8,7 @@
  * file that was distributed with this source code.
  */
 
-class opS3ImageAddTask extends sfDoctrineBaseTask
+class opS3ImageAddTask extends opS3ImageBaseTask
 {
   protected function configure()
   {
@@ -32,9 +32,9 @@ EOF;
 
   protected function execute($arguments = array(), $options = array())
   {
-    $lockDir = sfConfig::get('sf_cache_dir').DIRECTORY_SEPARATOR.'op_s3_image_add_task.lock';
-
     error_reporting(error_reporting() & ~(E_STRICT | E_DEPRECATED));
+
+    $lockDir = sfConfig::get('sf_cache_dir').DIRECTORY_SEPARATOR.'op_s3_image_add_task.lock';
 
     $databaseManager = new sfDatabaseManager($this->configuration);
 
@@ -146,21 +146,12 @@ EOF;
 
   protected function uploadBinaryToS3(File $file, $format, $width, $height)
   {
-    require_once 'Services/Amazon/S3.php';
-
     $handler = new sfImageHandler(array(
       'filename' => $file->getName(),
       'format'   => $format,
       'width'    => $width,
       'height'   => $height,
     ));
-
-    $account = sfConfig::get('op_image_storage_s3_account');
-    $secret = sfConfig::get('op_image_storage_s3_secret');
-    $bucket = sfConfig::get('op_image_storage_s3_bucket');
-
-    $s3 = Services_Amazon_S3::getAccount($account, $secret);
-    $bucket = $s3->getBucket($bucket);
 
     $size = $width.'x'.$height;
     if (!$width || !$height)
@@ -184,8 +175,9 @@ EOF;
       return false;
     }
 
-    $objectName = sfImageStorageS3::generateS3Filename($file->getName(), $format, $size);
+    $bucket = $this->getS3Bucket();
 
+    $objectName = sfImageStorageS3::generateS3Filename($file->getName(), $format, $size);
     $object = $bucket->getObject($objectName);
     $object->contentType = $file->type;
     $object->acl = Services_Amazon_S3_AccessControlList::ACL_PUBLIC_READ;
@@ -193,18 +185,5 @@ EOF;
     $object->save();
 
     return $objectName;
-  }
-
-  protected function lock($dir)
-  {
-    if (!@mkdir($dir))
-    {
-      throw new RuntimeException('Unable to lock');
-    }
-  }
-
-  protected function unlock($dir)
-  {
-    @rmdir($dir);
   }
 }

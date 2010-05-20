@@ -36,13 +36,22 @@ class sfImageStorageS3 extends sfImageStorageDefault
   public function deleteBinary()
   {
     $filename = $this->file->getName();
-    if (0 === strpos($filename, self::S3_SCHEME))
+    if (!self::isS3Filename($filename))
     {
       return parent::deleteBinary();
     }
 
-    // deleting images is not supported yet
-    return null;
+    try
+    {
+      Doctrine::getTable('S3ImageQueue')->create(array(
+        'name' => $this->file->getName(),
+      ))->save();
+    }
+    catch (Exception $e)
+    {
+    }
+
+    return true;
   }
 
   public static function isS3Filename($filename)
